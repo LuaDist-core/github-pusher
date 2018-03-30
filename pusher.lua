@@ -121,8 +121,16 @@ local function travisRequest(method, endpoint, data)
     return ok, nil, cmd
   end
 
-  local data = json.decode(stdout)
-  return data["@type"] ~= "error", data, cmd
+  local function decodeOutput()
+    return json.decode(stdout)
+  end
+
+  local ok, data = pcall(decodeOutput)
+  if ok then
+    return data["@type"] ~= "error", data, cmd
+  end
+
+  return false, "Error parsing json:\nInput: " .. stdout .. "\nError: "  .. data, cmd
 end
 
 local function travisActivateRepo(repo)
@@ -156,24 +164,24 @@ local function travisWireRepository(repo)
   -- Assume that name of folder with repository is identical to module name
   local modName = pl.path.relpath(repo, cfg.repoPath)
 
-  log:debug("Enabling Travis for '" .. modName .. "'")
+  log:debug("Enabling Travis for '" .. modName .. "'...")
 
   local ok, data = travisSetEnv(cfg.githubDir .. "/" .. modName)
-  --log:debug("Env:\nData: " .. pl.pretty.write(data))
+  log:debug("Set env:\nData: " .. pl.pretty.write(data))
   if not ok then
     log:error("Error setting environment variables on Travis-CI.\nData: " .. pl.pretty.write(data))
     return false
   end
 
   local ok, data = travisActivateRepo(cfg.githubDir .. "/" .. modName)
-  --log:debug("Activate:\nData: " .. pl.pretty.write(data))
+  log:debug("Activate:\nData: " .. pl.pretty.write(data))
   if not ok then
     log:error("Error trying to activate repository on Travis-CI.\nData: " .. pl.pretty.write(data))
     return false
   end
 
   local ok, data = travisRequestBuild(cfg.githubDir .. "/" .. modName)
-  --log:debug("Request:\nData: " .. pl.pretty.write(data))
+  log:debug("Request:\nData: " .. pl.pretty.write(data))
   if not ok then
     log:error("Error requesting Travis-CI build.\nData: " .. pl.pretty.write(data))
     return false
