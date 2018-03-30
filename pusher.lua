@@ -170,7 +170,11 @@ local function travisWireRepository(repo)
   log:debug("Set env:\nData: " .. pl.pretty.write(data))
   if not ok then
     log:error("Error setting environment variables on Travis-CI.\nData: " .. pl.pretty.write(data))
-    return false
+    if data["@type"] == "error" and data["error_type"] == "duplicate_resource" then
+      log:warn("The required variables seem to be set already, trying to continue as normal...")
+    else
+      return false
+    end
   end
 
   local ok, data = travisActivateRepo(cfg.githubDir .. "/" .. modName)
