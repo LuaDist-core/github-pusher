@@ -201,6 +201,7 @@ log:debug("Waiting for " .. cfg.travisSyncWait .. " seconds...")
 sleep(cfg.travisSyncWait)
 
 local stillInactive = travisRepos
+log:debug("Repos still inactive on Travis: " .. #stillInactive)
 
 while #stillInactive > 0 do
   travisRepos = stillInactive
@@ -213,7 +214,7 @@ while #stillInactive > 0 do
   end
 
   if #stillInactive > 0 then
-    log:debug("There are still some inactive Travis repos, waiting for " .. cfg.travisSyncWait .. " seconds before trying again...")
+    log:debug("There are still some inactive Travis repos (" .. #stillInactive .. "), waiting for " .. cfg.travisSyncWait .. " seconds before trying again...")
     sleep(cfg.travisSyncWait)
   end
 end
