@@ -206,6 +206,8 @@ sleep(cfg.travisSyncWait)
 
 local stillInactive = travisRepos
 log:debug("Repos still inactive on Travis: " .. #stillInactive)
+local previousCount = #stillInactive
+local retriesRemaining = cfg.travisMaxTries
 
 while #stillInactive > 0 do
   travisRepos = stillInactive
@@ -218,7 +220,33 @@ while #stillInactive > 0 do
   end
 
   if #stillInactive > 0 then
-    log:debug("There are still some inactive Travis repos (" .. #stillInactive .. "), waiting for " .. cfg.travisSyncWait .. " seconds before trying again...")
+    log:debug("There are still some inactive Travis repos (" .. #stillInactive .. ").")
+
+    if #stillInactive == previousCount then
+      -- nothing happened, we're at the risk of running into an infinite loop
+      retriesRemaining = retriesRemaining - 1
+      if retriesRemaining < 0 then
+        log:error("Not all repositories were synced with Travis (" .. #stillInactive .. "): " .. pl.pretty.write(stillInactive))
+        os.exit(1)
+      end
+
+
+      if retriesRemaining > 0 then
+        log:debug((retriesRemaining + 1) .. " tries remaining...")
+      else
+        log:debug("Last try...")
+      end
+    else
+      previousCount = #stillInactive
+      retriesRemaining = cfg.travisMaxTries
+    end
+
+    log:debug("Syncing Travis and waiting for " .. cfg.travisSyncWait .. " seconds before trying again.")
+    local ok, data = travisSync()
+    if not ok then
+      log:error("Error syncing Travis account.\nData: " .. pl.pretty.write(data))
+      os.exit(1)
+    end
     sleep(cfg.travisSyncWait)
   end
 end
