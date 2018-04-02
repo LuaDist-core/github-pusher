@@ -204,10 +204,20 @@ local function travisWireRepository(repo)
 end
 
 log:debug("Syncing Travis account...")
-local ok, data = travisSync()
-if not ok then
-  log:error("Error syncing Travis account.\nData: " .. pl.pretty.write(data))
-  os.exit(1)
+local retriesRemaining = cfg.travisMaxTries
+while retriesRemaining >= 0 do
+  local ok, data = travisSync()
+  if not ok then
+    log:error("Error syncing Travis account.\nData: " .. pl.pretty.write(data))
+    log:debug("Trying again. Number of tries left: " .. retriesRemaining)
+    retriesRemaining = retriesRemaining - 1
+    if retriesRemaining < 0 then
+      log:error("Failed to sync Travis, exiting...")
+      os.exit(1)
+    end
+  else
+    break
+  end
 end
 
 log:debug("Waiting for " .. cfg.travisSyncWait .. " seconds...")
@@ -216,7 +226,7 @@ sleep(cfg.travisSyncWait)
 local stillInactive = travisRepos
 log:debug("Repos still inactive on Travis: " .. #stillInactive)
 local previousCount = #stillInactive
-local retriesRemaining = cfg.travisMaxTries
+retriesRemaining = cfg.travisMaxTries
 
 while #stillInactive > 0 do
   travisRepos = stillInactive
@@ -254,7 +264,6 @@ while #stillInactive > 0 do
     local ok, data = travisSync()
     if not ok then
       log:error("Error syncing Travis account.\nData: " .. pl.pretty.write(data))
-      os.exit(1)
     end
     sleep(cfg.travisSyncWait)
   end
