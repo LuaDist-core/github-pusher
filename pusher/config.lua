@@ -22,7 +22,7 @@ travisToken = os.getenv("PUSHER_TRAVIS_TOKEN") or error("environment variable PU
 -- The time (in seconds) we'll wait for Travis to sync before trying to activate the repositories again
 travisSyncWait = tonumber(os.getenv("PUSHER_TRAVIS_SYNC_WAIT")) or 30
 -- The amount of tries to sync Travis before giving up
-travisMaxTries = 5
+travisMaxTries = tonumber(os.getenv("PUSHER_TRAVIS_MAX_TRIES")) or 5
 
 ---------------------------------------
 -- Config post processing - DO NOT EDIT

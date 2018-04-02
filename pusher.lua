@@ -20,7 +20,7 @@ local log = logging.file(cfg.logDir .. "/pusher-%s.log", "%Y-%m-%d")
 
 -- Iterate over all repositories
 local repos = pl.dir.getdirectories(cfg.repoPath)
-local travisRepos = {}
+local travisRepos = repos
 
 for _, repo in pairs(repos) do
   repeat
@@ -44,9 +44,6 @@ for _, repo in pairs(repos) do
     -- We need to create github repository and add remote
     if not remotes:find('origin') then
       --log:debug('Found new repository "' .. repo .. '", initializing')
-
-      -- we probably need to wire Travis with this repo, save it for later
-      table.insert(travisRepos, repo)
 
       local cmd = 'curl -d \'{"name": "' .. modName .. '"}\' -u "' .. cfg.authString .. '" https://api.github.com/' .. cfg.apiUrl
 
@@ -134,7 +131,7 @@ local function travisRequest(method, endpoint, data)
 end
 
 local function travisActivateRepo(repo)
-  return travisRequest("POST", "repo/" .. urlencode(repo) .. "/activate")
+  return travisRequest("POST", "repo/" .. urlencode(repo) .. "/activate?include=branch.last_build")
 end
 
 local function travisRequestBuild(repo)
@@ -166,6 +163,25 @@ local function travisWireRepository(repo)
 
   log:debug("Enabling Travis for '" .. modName .. "'...")
 
+  local ok, data = travisActivateRepo(cfg.githubDir .. "/" .. modName)
+  log:debug("Activate:\nData: " .. pl.pretty.write(data))
+  if not ok then
+    log:error("Error trying to activate repository on Travis-CI.\nData: " .. pl.pretty.write(data))
+    return false
+  end
+
+  local default_branch = data["default_branch"]
+  if not default_branch then
+    log:error("Default branch for '" .. modName .. "' is nil even if it shouldn't be.")
+    return false
+  end
+
+  local last_build = default_branch["last_build"]
+  if last_build then
+    log:debug("It seems '" .. modName .. "' is already wired up correctly, continuing to the next package...")
+    return true
+  end
+
   local ok, data = travisSetEnv(cfg.githubDir .. "/" .. modName)
   log:debug("Set env:\nData: " .. pl.pretty.write(data))
   if not ok then
@@ -175,13 +191,6 @@ local function travisWireRepository(repo)
     else
       return false
     end
-  end
-
-  local ok, data = travisActivateRepo(cfg.githubDir .. "/" .. modName)
-  log:debug("Activate:\nData: " .. pl.pretty.write(data))
-  if not ok then
-    log:error("Error trying to activate repository on Travis-CI.\nData: " .. pl.pretty.write(data))
-    return false
   end
 
   local ok, data = travisRequestBuild(cfg.githubDir .. "/" .. modName)
