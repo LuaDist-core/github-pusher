@@ -17,12 +17,6 @@ orgName  = os.getenv("PUSHER_ORG_NAME") or 'LuaDist2'
 userName = os.getenv("PUSHER_USER_NAME") or ''
 
 githubToken = os.getenv("PUSHER_GITHUB_TOKEN") or error("environment variable PUSHER_GITHUB_TOKEN must be set")
-travisToken = os.getenv("PUSHER_TRAVIS_TOKEN") or error("environment variable PUSHER_TRAVIS_TOKEN must be set")
-
--- The time (in seconds) we'll wait for Travis to sync before trying to activate the repositories again
-travisSyncWait = tonumber(os.getenv("PUSHER_TRAVIS_SYNC_WAIT")) or 30
--- The amount of tries to sync Travis before giving up
-travisMaxTries = tonumber(os.getenv("PUSHER_TRAVIS_MAX_TRIES")) or 5
 
 ---------------------------------------
 -- Config post processing - DO NOT EDIT
